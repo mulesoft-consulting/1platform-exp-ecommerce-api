@@ -1,0 +1,1245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:customer360api="http://www.mulesoft.org/schema/mule/customer360api"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:customer-apispec="http://www.mulesoft.org/schema/mule/customer-apispec" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:order-api="http://www.mulesoft.org/schema/mule/order-api" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/order-api http://www.mulesoft.org/schema/mule/order-api/current/mule-order-api.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/customer-apispec http://www.mulesoft.org/schema/mule/customer-apispec/current/mule-customer-apispec.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/customer360api http://www.mulesoft.org/schema/mule/customer360api/current/mule-customer360api.xsd">
+    <http:listener-config name="ecommerce-cloud-api-httpListenerConfig" basePath="v2">
+        <http:listener-connection host="0.0.0.0" port="${https.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="${keystore.path}" keyPassword="${keystore.password}" password="${keystore.password}" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="ecommerce-cloud-api-config" raml="ecommerce-cloud-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<flow name="ecommerce-cloud-api-main">
+        <http:listener config-ref="ecommerce-cloud-api-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="ecommerce-cloud-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="ecommerce-cloud-api-console">
+        <http:listener config-ref="ecommerce-cloud-api-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="ecommerce-cloud-api-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\accounts\(id):application\json:ecommerce-cloud-api-config">
+    	                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:name="Not Implemented">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+    	
+    </flow>
+    <flow name="put:\orders\(id):application\json:ecommerce-cloud-api-config">
+		<ee:transform doc:name="Not Implemented" doc:id="f646a68f-5568-4218-be1b-86160660c69b" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[501]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+    </flow>
+    <flow name="delete:\accounts\(id):ecommerce-cloud-api-config">
+		<ee:transform doc:name="Not Implemented" doc:id="09958aa4-443c-4e70-9fce-b5a2cb111405" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[501]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+    </flow>
+    <flow name="delete:\orders\(id):ecommerce-cloud-api-config">
+		<ee:transform doc:name="Not Implemented" doc:id="09958aa4-443c-4e70-9fce-b5a2cb111405" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[501]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+    </flow>
+    <flow name="get:\accounts:ecommerce-cloud-api-config">
+		<customer360api:get-customer360s doc:name="Get customer 360 s" doc:id="c644830d-d09f-4f8b-b33b-e33cae888b1a" order-id="#[attributes.queryParams.orderId]" config-ref="Customer_360_API_Config"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="c419136d-df84-4560-99bb-43916e4d317a">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	meta: {
+		totalItems: payload.meta.totalItems,
+		pagingOffset: payload.meta.pagingOffset,
+		pagingLimit: payload.meta.pagingLimit,
+		messages: payload.meta.messages map ( message , indexOfMessage ) -> {
+			severity: message.severity,
+			itemId: message.itemId,
+			code: message.code,
+			link: message.link,
+			messageId: message.messageId,
+			description: message.description
+		},
+		sortBy: payload.meta.sortBy
+	},
+	links: {
+		next: {
+			href: payload.links.next.href,
+			title: payload.links.next.title
+		},
+		last: {
+			href: payload.links.last.href,
+			title: payload.links.last.title
+		},
+		prev: {
+			href: payload.links.prev.href,
+			title: payload.links.prev.title
+		},
+		self: {
+			href: payload.links.self.href,
+			title: payload.links.self.title
+		},
+		first: {
+			href: payload.links.first.href,
+			title: payload.links.first.title
+		}
+	},
+	accounts: payload.customers map (customer, indexOf) ->
+  	customer -"orders"
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders:ecommerce-cloud-api-config">
+		<choice doc:name="Choice" doc:id="d722172c-c8a3-4f5a-8c8a-f7d0973f9c83" >
+			<when expression="#[attributes.queryParams.customerId != null]" >
+				<customer360api:get-customer360-by-id doc:name="Get customer 360 by id" doc:id="05910557-05a9-4114-959d-ceaf503a689a" id="#[attributes.queryParams.customerId]" config-ref="Customer_360_API_Config"/>
+				<ee:transform doc:name="Transform Message" doc:id="93402b20-93a9-4eb9-81bb-baefe272dbaf">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var billingAddress =  payload.postalAddresses[?($.'type' == "billing")][0]
+var shippingAddress = payload.postalAddresses[?($.'type' == "shipping")][0]
+var shippingCost = p('shippingCost')
+fun calculateTaxAmount(total) = total * p('tax') as Number
+var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
+---
+{
+	meta: {
+		totalItems: sizeOf(payload.orders default []),
+		pagingOffset: 0,
+		pagingLimit: sizeOf(payload.orders default [])
+	},
+	orders: payload.orders map (order, indexOf) -> {
+		customerId: payload.accountId,
+		orderId: order.orderId,
+		orderDateTime: order.orderDateTime default now(),
+		status: order.status,
+		trackingNumber: order.trackingNumber,
+		contact: {
+				firstName: (payload.name splitBy(" "))[0] default "",
+				lastName: (payload.name splitBy(" "))[1] default "",
+				email: payload.email[?($.'type' == "Work")][0].address,
+				phone: payload.phone[0].phoneNumber
+		},
+		billingAddress:{
+			'type': "Home",
+			addressLines: billingAddress.addressLines,
+			city: billingAddress.city,
+			state: billingAddress.state,
+			postalCode: billingAddress.postalCode,
+			countryCode: billingAddress.countryCode
+		}, 
+		deliveryAddress:{
+			'type': "Home",
+			addressLines: shippingAddress.addressLines,
+			city: shippingAddress.city,
+			state: shippingAddress.state,
+			postalCode: shippingAddress.postalCode,
+			countryCode: shippingAddress.countryCode
+		}, 
+		deliveries: [
+			{
+				"type": "Shipment",
+				date: now() as LocalDateTime {format: 'yyyy-MM-dd'},
+				itemStatus: "Pending",
+				"authorizePeople": [
+					{
+						firstName: (payload.name splitBy(" "))[0] default "",
+						lastName: (payload.name splitBy(" "))[1] default "",
+					}
+				]	
+			}
+		],
+		deliveryStatus: "Processing",
+		currency: {
+			code: "USD"
+		},
+		subTotal: 100,
+		shippingCost: shippingCost,
+		taxAmount: calculateTaxAmount(100),
+		totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+		payments: [
+			{
+				transactionId: "a123456789",
+				dateTime: "2018-08-18T12:13:14Z",
+				currency: {
+					code: "USD"
+				},
+				amount: (100 + shippingCost + calculateTaxAmount(100)),
+				method: 'CreditCard',
+				paymentInfo: {
+					cardType: "VISA",
+					credtCardNumber: "XXXXXXXXXXXX8598",
+					cardOwner: payload.name,
+					expirationDate: {
+						month: 8,
+						year: 2024
+					},
+					ccv: "874",
+					postalCode: "301683"
+				},
+				approved: true,
+			}
+		],
+		orderItems: order.orderItems map (item, itemIndexOf) -> {
+			orderLine: item.orderLine,
+			product: {
+				id: item.product.id,
+				name: item.product.name
+			},
+			location: {
+				'type': "Store",
+				id: "s1"
+			},
+			sourceSystem: order.sourceSystem,
+            "deliveries": [
+            {
+                "type": "Shipment",
+                "date": "2018-08-18",
+                "itemStatus": "Pending",
+                "authorizedPeople": [
+                    {
+						firstName: (payload.name splitBy(" "))[0] default "",
+						lastName: (payload.name splitBy(" "))[1] default "",
+                    }
+                ],
+                    "carrier": "UPS",
+                    "trackingNumber": "t12334345345",
+                    "amount": 12,
+                    "insuredAmount": 10,
+                    "comments": "Left at front door"
+                }
+            ],
+            quantity: {
+            		ordered: item.quantity.ordered,
+            		shipped: item.quantity.shipped
+            }, 
+            "pricing": {
+	            "itemAmount": 20,
+	                "discount": {
+	                    "program": "Labor Day sale",
+                        "percent": 75
+                    },
+                    "totalAmount": 20,
+                    "discountedAmount": 15,
+                    "currency": {
+                        "code": "USD"
+                    }
+                },
+                "link": {
+                    "href": "http://localhost",
+                    "title": "Link to product"
+                }            
+		}
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<customer360api:get-customer360s doc:name="Get customer 360 s" doc:id="d68d2748-5147-4ded-9a2f-1ff184dec6c0" customer-id="#[attributes.queryParams.customerId]" customer-name="#[attributes.queryParams.customerName]" country-code="#[attributes.queryParams.countryCode]" config-ref="Customer_360_API_Config"/>
+				<ee:transform doc:name="Transform Message" doc:id="a242c155-0862-4045-a9c3-ee37b16a76ae">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+var flattenOrders = flatten(payload.customers.orders)
+var billingAddress = payload.postalAddress[?($.'type' == "billing")][0]
+var shippingAddress = payload.postalAddresses[?($.'type' == "shipping")][0]
+var shippingCost = p('shippingCost')
+fun calculateTaxAmount(total) = total * p('tax') as Number
+---
+{
+	meta: payload.meta,
+	links: payload.links,
+	orders: flattenOrders map (order, indexOf) -> {
+		customerId: payload.accountId,
+		orderId: order.orderId,
+		orderDateTime: order.orderDateTime default now(),
+		status: order.status,
+		trackingNumber: order.trackingNumber,
+		contact: {
+				firstName: (payload.name splitBy(" "))[0] default "",
+				lastName: (payload.name splitBy(" "))[1] default "",
+				email: payload.email[?($.'type' == "Work")][0].address,
+				phone: payload.phone[0].phoneNumber
+		},
+		billingAddress:{
+			'type': "Home",
+			addressLines: billingAddress.addressLines,
+			city: billingAddress.city,
+			state: billingAddress.state,
+			postalCode: billingAddress.postalCode,
+			countryCode: billingAddress.countryCode
+		}, 
+		deliveryAddress:{
+			'type': "Home",
+			addressLines: shippingAddress.addressLines,
+			city: shippingAddress.city,
+			state: shippingAddress.state,
+			postalCode: shippingAddress.postalCode,
+			countryCode: shippingAddress.countryCode
+		}, 
+		deliveries: [
+			{
+				"type": "Shipment",
+				date: now() as LocalDateTime {format: 'yyyy-MM-dd'},
+				itemStatus: "Pending",
+				"authorizePeople": [
+					{
+						firstName: (payload.name splitBy(" "))[0] default "",
+						lastName: (payload.name splitBy(" "))[1] default "",
+					}
+				]	
+			}
+		],
+		deliveryStatus: "Processing",
+		currency: {
+			code: "USD"
+		},
+		subTotal: 100,
+		shippingCost: shippingCost,
+		taxAmount: calculateTaxAmount(100),
+		totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+		paments: [
+			{
+				transactionId: "a123456789",
+				dateTime: "2018-08-18T12:13:14Z",
+				currency: {
+					code: "USD"
+				},
+				amount: (100 + shippingCost + calculateTaxAmount(100)),
+				method: 'CreditCard',
+				paymentInfo: {
+					cardType: "VISA",
+					credtCardNumber: "4929101819578598",
+					cardOwner: payload.name,
+					expirationDate: {
+						month: 8,
+						year: 2024
+					},
+					ccv: "874",
+					postalCode: "301683"
+				},
+				approved: true,
+			}
+		],
+		ordersItems: order.orderItems map (item, itemIndexOf) -> {
+			orderLine: item.orderLine,
+			product: {
+				id: item.product.id,
+				name: item.product.name
+			},
+			location: {
+				'type': "Store",
+				id: "s1"
+			},
+			sourceSystem: order.sourceSystem,
+            "deliveries": [
+            {
+                "type": "Shipment",
+                "date": "2018-08-18",
+                "itemStatus": "Pending",
+                "authorizedPeople": [
+                    {
+						firstName: (payload.name splitBy(" "))[0] default "",
+						lastName: (payload.name splitBy(" "))[1] default "",
+                    }
+                ],
+                    "carrier": "UPS",
+                    "trackingNumber": "t12334345345",
+                    "amount": 12,
+                    "insuredAmount": 10,
+                    "comments": "Left at front door"
+                }
+            ],
+            quantity: {
+            		ordered: item.quantity.ordered,
+            		shipped: item.quantity.shipped
+            }
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</otherwise>
+		</choice>
+    </flow>
+    <flow name="get:\shipments:ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="50df086d-9421-4df1-908e-4cdfa2351f23">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  meta: {
+    messages: [
+      {
+        severity: "INFO",
+        code: "200",
+        description: "OK",
+        link: {
+          href: "http://localhost",
+          title: "All good!"
+        }
+      }
+    ],
+    totalItems: 2,
+    pagingOffset: 1,
+    pagingLimit: 15
+  },
+  links: {
+    self: {
+      href: "http://localhost/currentPage",
+      title: "Current page"
+    },
+    first: {
+      href: "http://localhost/firstPage",
+      title: "First Page"
+    },
+    prev: {
+      href: "http://localhost/previousPage",
+      title: "Previous page"
+    },
+    next: {
+      href: "http://localhost/nextPage",
+      title: "Next Page"
+    },
+    last: {
+      href: "http://localhost/lastPage",
+      title: "Last Page"
+    }
+  },
+  shipments: [
+    {
+      request: {
+        sourceSystem: "FedEx",
+        carrier: "FedEx",
+        trackingNumber: "1234567s",
+        orderId: "94612",
+        origin: {
+          addressId: "123423423234s",
+          "type": "Home",
+          addressLines: [
+            "1 Market Street", 
+            "Suite 300"
+          ],
+          city: "San Francisco",
+          state: "CA",
+          postalCode: "94105",
+          countryCode: "USA"
+        },
+        destination: {
+          addressId: "string",
+          "type": "string",
+          addressLines: [
+            "154 Douglas Fir Drive"
+          ],
+          city: "Waleska",
+          state: "GA",
+          postalCode: "30183",
+          countryCode: "USA"
+        },
+        dates: {
+          appointmentDate: "2018-01-01",
+          estimatedDeliveryDate: "2018-01-01",
+          actualDeliveryDate: "2018-01-01"
+        },
+        contents: {
+          numberOfPieces: 6,
+          totalWeight: 400,
+          unitOfMeasure: "lbs",
+          items: [
+            {
+              lineNumber: 1,
+              product: {
+                id: "1004100",
+                description: "Men’s Thunder Jacket"
+              },
+              requiresAdultSignature: true,
+              comments: "adult must sign for item"
+            }, 
+            {
+              lineNumber: 2,
+              product: {
+                id: "1806100",
+                description: "Men’s Single Track II"
+              },
+              requiresAdultSignature: true,
+              comments: "adult must sign for item"
+            }
+          ]
+        },
+        amount: 1200.00,
+        insurance: {
+          amountInsured: 1200.00,
+          costs: 60.00
+        },
+        status: "Shipment departed",
+        link: {
+          href: "http://localhost",
+          title: "Tracking Information"
+        }
+      },
+      trackingUpdates: [
+        {
+          dateTime: "2018-01-01T12:01:02Z",
+          status: "Package has left seller facility and is in transit to carrier",
+          additionalInfo: "string",
+          images: [
+            {
+              href: "http://localhost",
+              title: "string"
+            }
+          ]
+        }, 
+        {
+          dateTime: "2018-01-02T15:01:02Z",
+          status: "Shipment departed",
+          additionalInfo: "new info",
+          images: [
+            {
+              href: "http://localhost",
+              title: "image"
+            }
+          ]
+        }, 
+        {
+          dateTime: "2018-01-03T09:01:02Z",
+          status: "Arrived at a carrier facility",
+          additionalInfo: "Damaged",
+          images: [
+            {
+              href: "http://localhost",
+              title: "damaged photo"
+            }
+          ]
+        }
+      ]
+    }, 
+    {
+      request: {
+        sourceSystem: "UPS",
+        carrier: "FedEx",
+        trackingNumber: "1234567s",
+        orderId: "94612",
+        origin: {
+          addressId: "123423423234s",
+          "type": "Home",
+          addressLines: [
+            "1 Market Street", 
+            "Suite 300"
+          ],
+          city: "San Francisco",
+          state: "CA",
+          postalCode: "94105",
+          countryCode: "USA"
+        },
+        destination: {
+          addressId: "string",
+          "type": "string",
+          addressLines: [
+            "154 Douglas Fir Drive"
+          ],
+          city: "Waleska",
+          state: "GA",
+          postalCode: "30183",
+          countryCode: "USA"
+        },
+        dates: {
+          appointmentDate: "2018-01-01",
+          estimatedDeliveryDate: "2018-01-01",
+          actualDeliveryDate: "2018-01-01"
+        },
+        contents: {
+          numberOfPieces: 6,
+          totalWeight: 400,
+          unitOfMeasure: "lbs",
+          items: [
+            {
+              lineNumber: 1,
+              product: {
+                id: "1004100",
+                description: "Men’s Thunder Jacket"
+              },
+              requiresAdultSignature: true,
+              comments: "adult must sign for item"
+            }, 
+            {
+              lineNumber: 2,
+              product: {
+                id: "1806100",
+                description: "Men’s Single Track II"
+              },
+              requiresAdultSignature: true,
+              comments: "adult must sign for item"
+            }
+          ]
+        },
+        amount: 1200.00,
+        insurance: {
+          amountInsured: 1200.00,
+          costs: 60.00
+        },
+        status: "Shipment departed",
+        link: {
+          href: "http://localhost",
+          title: "Tracking Information"
+        }
+      },
+      trackingUpdates: [
+        {
+          dateTime: "2018-01-01T12:01:02Z",
+          status: "Package has left seller facility and is in transit to carrier",
+          additionalInfo: "string",
+          images: [
+            {
+              href: "http://localhost",
+              title: "string"
+            }
+          ]
+        }, 
+        {
+          dateTime: "2018-01-02T15:01:02Z",
+          status: "Shipment departed",
+          additionalInfo: "new info",
+          images: [
+            {
+              href: "http://localhost",
+              title: "image"
+            }
+          ]
+        }, 
+        {
+          dateTime: "2018-01-03T09:01:02Z",
+          status: "Arrived at a carrier facility",
+          additionalInfo: "Damaged",
+          images: [
+            {
+              href: "http://localhost",
+              title: "damaged photo"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\accounts\(id):ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  customerId: "c1",
+  accountId: "a1",
+  name: "Northern Trail Outfitters",
+  phone: [
+    {
+      "type": "Work",
+      phoneNumber: "415-233-2345",
+      preferred: true,
+      doNotCall: false,
+      doNotText: false
+    }
+  ],
+  email: [
+    {
+      "type": "Work",
+      address: "brett@ga.com",
+      preferred: true,
+      doNotEmail: false
+    }
+  ],
+  postalAddresses: [
+    {
+      addressId: "addr1",
+      "type": "billing",
+      addressLines: [
+        "154 Douglas Fir Dr"
+      ],
+      city: "Waleska",
+      state: "GA",
+      postalCode: "30183",
+      countryName: "United States of America",
+      countryCode: "USA"
+    }
+  ],
+  currency: {
+    code: "USD"
+  },
+  createdDateTime: {
+    onDateTime: "2018-01-01T12:01:01Z"
+  },
+  lastModifiedDateTime: {
+    onDateTime: "2018-08-01T17:20:30Z"
+  }
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="get:\orders\(id):ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
+            <ee:variables>
+                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  sourceSystem: "SAP, Billing DB",
+  customerId: "10000012",
+  orderId: "00007065",
+  orderDateTime: "2018-01-06T12:13:15Z",
+  status: "Waiting Fulfillment",
+  trackingNumber: "1112cd",
+  contact: {
+    firstName: "Tim",
+    lastName: "Witz",
+    email: "tim@company.com",
+    phone: "415-278-9279"
+  },
+  billingAddress: {
+    addressId: "a1800",
+    "type": "Home",
+    addressLines: [
+      "1800 McAllistor Street"
+    ],
+    city: "San Francisco",
+    state: "CA",
+    postalCode: "94115",
+    countryCode: "USA"
+  },
+  deliveryAddress: {
+    addressId: "a1800",
+    "type": "Home",
+    addressLines: [
+      "1800 McAllistor Street"
+    ],
+    city: "San Francisco",
+    state: "CA",
+    postalCode: "94115",
+    countryCode: "USA"
+  },
+  deliveries: [
+    {
+      "type": "Shipment",
+      date: "2018-08-18",
+      itemStatus: "Pending",
+      authorizedPeople: [
+        {
+          firstName: "Tim",
+          lastName: "Witz"
+        }
+      ],
+      carrier: "UPS",
+      trackingNumber: "t12334345345",
+      amount: 12.00,
+      insuredAmount: 10.00,
+      comments: "Left at front door"
+    }
+  ],
+  deliveryStatus: "Processing",
+  currency: {
+    code: "USD"
+  },
+  subTotal: 100.00,
+  shippingCost: 20.00,
+  taxAmount: 6.00,
+  totalAmount: 126.00,
+  payments: [
+    {
+      transactionId: "a123456789",
+      dateTime: "2018-08-18T12:13:14Z",
+      currency: {
+        code: "USD"
+      },
+      amount: 154.44,
+      method: "CreditCard",
+      paymentInfo: {
+        cardType: "VISA",
+        creditCardNumber: "1234567812345678",
+        cardOwner: "Tim Witz",
+        expirationDate: {
+          month: 8,
+          year: 2018
+        },
+        ccv: "874",
+        postalCode: "301683"
+      },
+      approved: true,
+      additionalInfo: "Additional info"
+    }
+  ],
+  orderItems: [
+    {
+      orderLine: 1,
+      product: {
+        id: "1004100",
+        name: "Men’s Thunder Jacket"
+      },
+      location: {
+        "type": "Store",
+        id: "s1"
+      },
+      sourceSystem: "SAP",
+      deliveries: [
+        {
+          "type": "Shipment",
+          date: "2018-08-18",
+          itemStatus: "Pending",
+          authorizedPeople: [
+            {
+              firstName: "Tim",
+              lastName: "Witz"
+            }
+          ],
+          carrier: "UPS",
+          trackingNumber: "t12334345345",
+          amount: 12.00,
+          insuredAmount: 10.00,
+          comments: "Left at front door"
+        }
+      ],
+      quantity: {
+        ordered: 3,
+        shipped: 2,
+        backOrdered: 1
+      },
+      pricing: {
+        itemAmount: 20.00,
+        discount: {
+          program: "Labor Day sale",
+          percent: 75
+        },
+        totalAmount: 20.00,
+        discountedAmount: 15.00,
+        currency: {
+          code: "USD"
+        }
+      },
+      link: {
+        href: "http://localhost",
+        title: "Link to product"
+      }
+    }, 
+    {
+      orderLine: 2,
+      product: {
+        id: "1806100",
+        name: "Men’s Single Track II"
+      },
+      location: {
+        "type": "Store",
+        id: "s1"
+      },
+      sourceSystem: "Billing DB",
+      deliveries: [
+        {
+          "type": "Pickup",
+          date: "2018-08-18",
+          authorizedPeople: [
+            {
+              firstName: "Tim",
+              lastName: "Witz",
+              phoneNumber: "415-030-2033"
+            }
+          ]
+        }
+      ],
+      quantity: {
+        ordered: 4,
+        shipped: 4,
+        backOrdered: 0
+      },
+      pricing: {
+        itemAmount: 20.00,
+        discount: {
+          program: "Back to school",
+          amount: 20.00
+        },
+        totalAmount: 80.00,
+        discountedAmount: 60.00,
+        currency: {
+          code: "USD"
+        }
+      },
+      link: {
+        href: "http://localhost",
+        title: "Link to product"
+      }
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\accounts:application\json:ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  meta: {
+    messages: [
+      {
+        severity: "INFO",
+        code: "200",
+        description: "OK",
+        link: {
+          href: "http://localhost",
+          title: "All good!"
+        }
+      }
+    ],
+    totalItems: 3,
+    pagingOffset: 1,
+    pagingLimit: 15
+  },
+  links: {
+    self: {
+      href: "http://localhost/currentPage",
+      title: "Current page"
+    },
+    first: {
+      href: "http://localhost/firstPage",
+      title: "First Page"
+    },
+    prev: {
+      href: "http://localhost/previousPage",
+      title: "Previous page"
+    },
+    next: {
+      href: "http://localhost/nextPage",
+      title: "Next Page"
+    },
+    last: {
+      href: "http://localhost/lastPage",
+      title: "Last Page"
+    }
+  },
+  messages: [
+    {
+      itemId: "2222222",
+      severity: "INFO",
+      code: "201",
+      description: "account record created"
+    }, 
+    {
+      itemId: "3333333",
+      severity: "INFO",
+      code: "202",
+      description: "Create account request accepted"
+    }, 
+    {
+      itemId: "111111",
+      severity: "INFO",
+      code: "409",
+      description: "Duplicate account record exists"
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\orders:application\json:ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  meta: {
+    messages: [
+      {
+        severity: "INFO",
+        code: "200",
+        description: "OK",
+        link: {
+          href: "http://localhost",
+          title: "All good!"
+        }
+      }
+    ],
+    totalItems: 3,
+    pagingOffset: 1,
+    pagingLimit: 15
+  },
+  links: {
+    self: {
+      href: "http://localhost/currentPage",
+      title: "Current page"
+    },
+    first: {
+      href: "http://localhost/firstPage",
+      title: "First Page"
+    },
+    prev: {
+      href: "http://localhost/previousPage",
+      title: "Previous page"
+    },
+    next: {
+      href: "http://localhost/nextPage",
+      title: "Next Page"
+    },
+    last: {
+      href: "http://localhost/lastPage",
+      title: "Last Page"
+    }
+  },
+  messages: [
+    {
+      itemId: "2222222",
+      severity: "INFO",
+      code: "201",
+      description: "order record created"
+    }, 
+    {
+      itemId: "3333333",
+      severity: "INFO",
+      code: "202",
+      description: "Create order request accepted"
+    }, 
+    {
+      itemId: "111111",
+      severity: "INFO",
+      code: "409",
+      description: "Duplicate order record exists"
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\payments:application\json:ecommerce-cloud-api-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  meta: {
+    messages: [
+      {
+        severity: "INFO",
+        code: "200",
+        description: "OK",
+        link: {
+          href: "http://localhost",
+          title: "All good!"
+        }
+      }
+    ],
+    totalItems: 3,
+    pagingOffset: 1,
+    pagingLimit: 15
+  },
+  links: {
+    self: {
+      href: "http://localhost/currentPage",
+      title: "Current page"
+    },
+    first: {
+      href: "http://localhost/firstPage",
+      title: "First Page"
+    },
+    prev: {
+      href: "http://localhost/previousPage",
+      title: "Previous page"
+    },
+    next: {
+      href: "http://localhost/nextPage",
+      title: "Next Page"
+    },
+    last: {
+      href: "http://localhost/lastPage",
+      title: "Last Page"
+    }
+  },
+  messages: [
+    {
+      itemId: "2222222",
+      severity: "INFO",
+      code: "201",
+      description: "payment record created"
+    }, 
+    {
+      itemId: "3333333",
+      severity: "INFO",
+      code: "202",
+      description: "Create payment request accepted"
+    }, 
+    {
+      itemId: "111111",
+      severity: "INFO",
+      code: "409",
+      description: "Duplicate payment record exists"
+    }
+  ]
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+</mule>

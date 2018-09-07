@@ -1,0 +1,29 @@
+https:
+  port: "8082"
+
+api:
+  customer360:
+    host: "nto-customer-360-api-v2.us-e2.cloudhub.io"
+    port: "443"
+    protocol: "HTTPS"
+    
+app:
+  client_id: "9e586d61464346f99dfd9f482e862132"
+  client_secret: "aEB6e861478F453B8C9b94000f74c377"
+  autodiscovery: "15527008"
+  
+#Sales Business Group credentials
+anypoint:
+  platform:
+    client_id: "8f8414f80f3b43268a295ff3d2173531"
+    client_secret: "36A94A62084d44D9b1d3E7b0D2e56D85"
+    visualizer:
+      layer: "Experience"
+      
+      
+keystore:
+  path: "docker01.domain.local.jks"
+  password: "Welcome1"
+  
+shippingCost: "20"
+tax: "0.01"

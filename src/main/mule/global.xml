@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:customer360api="http://www.mulesoft.org/schema/mule/customer360api"
+	xmlns:customer-apispec="http://www.mulesoft.org/schema/mule/customer-apispec" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:order-api="http://www.mulesoft.org/schema/mule/order-api"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/order-api http://www.mulesoft.org/schema/mule/order-api/current/mule-order-api.xsd
+http://www.mulesoft.org/schema/mule/customer-apispec http://www.mulesoft.org/schema/mule/customer-apispec/current/mule-customer-apispec.xsd
+http://www.mulesoft.org/schema/mule/customer360api http://www.mulesoft.org/schema/mule/customer360api/current/mule-customer360api.xsd">
+	<configuration-properties doc:name="Configuration properties" doc:id="f2c975d6-6de0-4ccb-9060-48f311c027af" file="config/configuration.yaml" />
+	<api-gateway:autodiscovery apiId="${app.autodiscovery}" doc:name="API Autodiscovery" doc:id="79394d67-5af5-427a-a2df-7e207041cc8a" flowRef="ecommerce-cloud-api-main" />
+	<customer360api:config name="Customer_360_API_Config" doc:name="Customer 360 API Config" doc:id="bf111dbb-c6e6-401e-9563-161e068f1bde" property_host="${api.customer360.host}" property_port="${api.customer360.port}" property_basePath="/api" property_protocol="${api.customer360.protocol}" property_client-id="${app.client_id}" property_client-secret="${app.client_secret}" />
+</mule>
