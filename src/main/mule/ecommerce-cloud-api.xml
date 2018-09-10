@@ -871,9 +871,9 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 ---
 {
 	sourceSystem: order.sourceSystem,
-	customer: customer.accountId,
+	customerId: customer.accountId,
 	orderId: order.orderId,
-	orderDateTime: order.orderDateTime default now() as LocalDateTime {format: "yyyy-MM-dd"},
+	orderDateTime: order.orderDateTime default now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"},
 	status: order.status,
 	trackingNumber: order.trackingNumber,
 	contact: {
@@ -903,12 +903,17 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 			"type": "Shipment",
 			date: now() as LocalDateTime {format: 'yyyy-MM-dd'},
 			itemStatus: "Pending",
-			"authorizePeople": [
+			authorizePeople: [
 				{
 					firstName: (customer.name splitBy(" "))[0] default "",
 					lastName: (customer.name splitBy(" "))[1] default "",
 				}
-			]	
+			],
+			carrier: "UPS",
+			trackingNumber: order.trackingNumber,
+			amount: 12,
+			insuredAmount: 10,
+			comments: "Left at front door"
 		}
 	],
 	deliveryStatus: "Processing",
