@@ -6,10 +6,14 @@ api:
     host: "nto-customer-360-api-v2.us-e2.cloudhub.io"
     port: "443"
     protocol: "HTTPS"
+  order:
+    host: ""
+    port: "443"
+    protocol: "HTTPS"
     
 app:
-  client_id: "9e586d61464346f99dfd9f482e862132"
-  client_secret: "aEB6e861478F453B8C9b94000f74c377"
+  client_id: "c9268556b99848ce935a4b4a0f773dad"
+  client_secret: "7E46cb32fc5248F392035702a4CDBA57"
   autodiscovery: "15527008"
   
 #Sales Business Group credentials

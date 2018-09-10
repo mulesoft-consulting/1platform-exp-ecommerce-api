@@ -365,20 +365,20 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
             }, 
             "pricing": {
 	            "itemAmount": 20,
-	                "discount": {
-	                    "program": "Labor Day sale",
-                        "percent": 75
-                    },
-                    "totalAmount": 20,
-                    "discountedAmount": 15,
-                    "currency": {
-                        "code": "USD"
-                    }
-                },
-                "link": {
-                    "href": "http://localhost",
-                    "title": "Link to product"
-                }            
+	            "discount": {
+                		"program": "Labor Day sale",
+	                "percent": 75
+    		        	},
+            		"totalAmount": 20,
+            		"discountedAmount": 15,
+        			"currency": {
+                		"code": "USD"
+            		}
+        		},
+            "link": {
+                "href": "http://localhost",
+                "title": "Link to product"
+            }            
 		}
 	}
 }]]></ee:set-payload>
@@ -391,42 +391,46 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
-var flattenOrders = flatten(payload.customers.orders)
-var billingAddress = payload.postalAddress[?($.'type' == "billing")][0]
-var shippingAddress = payload.postalAddresses[?($.'type' == "shipping")][0]
+fun billingAddress(customer) =  customer.postalAddresses[?($.'type' == "billing")][0]
+fun shippingAddress(customer) = customer.postalAddresses[?($.'type' == "shipping")][0]
 var shippingCost = p('shippingCost')
 fun calculateTaxAmount(total) = total * p('tax') as Number
+var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 ---
 {
-	meta: payload.meta,
-	links: payload.links,
-	orders: flattenOrders map (order, indexOf) -> {
-		customerId: payload.accountId,
-		orderId: order.orderId,
-		orderDateTime: order.orderDateTime default now(),
-		status: order.status,
-		trackingNumber: order.trackingNumber,
+	meta: {
+		totalItems: sizeOf(payload.customers.orders default []),
+		pagingOffset: 0,
+		pagingLimit: sizeOf(payload.customers.orders default [])
+	},
+	orders: flatten(payload.customers map (customer, customerIndex) -> 
+		customer.orders map (order, indexOf) -> {
+			customerId: customer.accountId,
+			orderId: order.orderId,
+			orderDateTime: order.orderDateTime default now(),
+			status: order.status,
+			trackingNumber: order.trackingNumber,
 		contact: {
-				firstName: (payload.name splitBy(" "))[0] default "",
-				lastName: (payload.name splitBy(" "))[1] default "",
-				email: payload.email[?($.'type' == "Work")][0].address,
-				phone: payload.phone[0].phoneNumber
+				firstName: (customer.name splitBy(" "))[0] default "",
+				lastName: (customer.name splitBy(" "))[1] default "",
+				email: customer.email[?($.'type' == "Work")][0].address,
+				phone: customer.phone[0].phoneNumber
 		},
 		billingAddress:{
 			'type': "Home",
-			addressLines: billingAddress.addressLines,
-			city: billingAddress.city,
-			state: billingAddress.state,
-			postalCode: billingAddress.postalCode,
-			countryCode: billingAddress.countryCode
+			addressLines: billingAddress(customer).addressLines,
+			city: billingAddress(customer).city,
+			state: billingAddress(customer).state,
+			postalCode: billingAddress(customer).postalCode,
+			countryCode: billingAddress(customer).countryCode
 		}, 
 		deliveryAddress:{
 			'type': "Home",
-			addressLines: shippingAddress.addressLines,
-			city: shippingAddress.city,
-			state: shippingAddress.state,
-			postalCode: shippingAddress.postalCode,
-			countryCode: shippingAddress.countryCode
+			addressLines: shippingAddress(customer).addressLines,
+			city: shippingAddress(customer).city,
+			state: shippingAddress(customer).state,
+			postalCode: shippingAddress(customer).postalCode,
+			countryCode: shippingAddress(customer).countryCode
 		}, 
 		deliveries: [
 			{
@@ -435,8 +439,8 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 				itemStatus: "Pending",
 				"authorizePeople": [
 					{
-						firstName: (payload.name splitBy(" "))[0] default "",
-						lastName: (payload.name splitBy(" "))[1] default "",
+						firstName: (customer.name splitBy(" "))[0] default "",
+						lastName: (customer.name splitBy(" "))[1] default "",
 					}
 				]	
 			}
@@ -449,7 +453,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 		shippingCost: shippingCost,
 		taxAmount: calculateTaxAmount(100),
 		totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
-		paments: [
+		payments: [
 			{
 				transactionId: "a123456789",
 				dateTime: "2018-08-18T12:13:14Z",
@@ -460,8 +464,8 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 				method: 'CreditCard',
 				paymentInfo: {
 					cardType: "VISA",
-					credtCardNumber: "4929101819578598",
-					cardOwner: payload.name,
+					credtCardNumber: "XXXXXXXXXXXX8598",
+					cardOwner: customer.name,
 					expirationDate: {
 						month: 8,
 						year: 2024
@@ -472,7 +476,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 				approved: true,
 			}
 		],
-		ordersItems: order.orderItems map (item, itemIndexOf) -> {
+		orderItems: order.orderItems map (item, itemIndexOf) -> {
 			orderLine: item.orderLine,
 			product: {
 				id: item.product.id,
@@ -490,8 +494,8 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
                 "itemStatus": "Pending",
                 "authorizedPeople": [
                     {
-						firstName: (payload.name splitBy(" "))[0] default "",
-						lastName: (payload.name splitBy(" "))[1] default "",
+						firstName: (customer.name splitBy(" "))[0] default "",
+						lastName: (customer.name splitBy(" "))[1] default "",
                     }
                 ],
                     "carrier": "UPS",
@@ -504,9 +508,25 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
             quantity: {
             		ordered: item.quantity.ordered,
             		shipped: item.quantity.shipped
-            }
+            }, 
+            "pricing": {
+	            "itemAmount": 20,
+	            "discount": {
+                		"program": "Labor Day sale",
+	                "percent": 75
+    		        	},
+            		"totalAmount": 20,
+            		"discountedAmount": 15,
+        			"currency": {
+                		"code": "USD"
+            		}
+        		},
+            "link": {
+                "href": "http://localhost",
+                "title": "Link to product"
+            }            
 		}
-	}
+	})
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
@@ -836,410 +856,174 @@ output application/json
         </ee:transform>
     </flow>
     <flow name="get:\orders\(id):ecommerce-cloud-api-config">
-        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core">
-            <ee:variables>
-                <ee:set-variable variableName="id">attributes.uriParams.id</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
+		<set-variable value="#[attributes.uriParams.id as Number]" doc:name="Set Variable" doc:id="9b05ed92-86d3-4e75-b98e-663294605ae3" variableName="orderId"/>
+		<customer360api:get-customer360s doc:name="Get customer 360 s" doc:id="6254437c-804f-4bfd-85a4-b20bec4e77e2" order-id="#[attributes.uriParams.id]" config-ref="Customer_360_API_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="74011530-b4b2-4eeb-a4c8-233c927594f3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
+var order = payload.customers[0].orders[?(($.orderId as Number) == vars.orderId)][0]
+var customer = payload.customers[0]
+var billingAddress = customer.postalAddresses[?($.'type' == "billing")][0]
+var shippingAddress = customer.postalAddresses[?($.'type' == "shipping")][0]
+var shippingCost = p('shippingCost')
+fun calculateTaxAmount(total) = total * p('tax') as Number
 ---
 {
-  sourceSystem: "SAP, Billing DB",
-  customerId: "10000012",
-  orderId: "00007065",
-  orderDateTime: "2018-01-06T12:13:15Z",
-  status: "Waiting Fulfillment",
-  trackingNumber: "1112cd",
-  contact: {
-    firstName: "Tim",
-    lastName: "Witz",
-    email: "tim@company.com",
-    phone: "415-278-9279"
-  },
-  billingAddress: {
-    addressId: "a1800",
-    "type": "Home",
-    addressLines: [
-      "1800 McAllistor Street"
-    ],
-    city: "San Francisco",
-    state: "CA",
-    postalCode: "94115",
-    countryCode: "USA"
-  },
-  deliveryAddress: {
-    addressId: "a1800",
-    "type": "Home",
-    addressLines: [
-      "1800 McAllistor Street"
-    ],
-    city: "San Francisco",
-    state: "CA",
-    postalCode: "94115",
-    countryCode: "USA"
-  },
-  deliveries: [
-    {
-      "type": "Shipment",
-      date: "2018-08-18",
-      itemStatus: "Pending",
-      authorizedPeople: [
-        {
-          firstName: "Tim",
-          lastName: "Witz"
-        }
-      ],
-      carrier: "UPS",
-      trackingNumber: "t12334345345",
-      amount: 12.00,
-      insuredAmount: 10.00,
-      comments: "Left at front door"
-    }
-  ],
-  deliveryStatus: "Processing",
-  currency: {
-    code: "USD"
-  },
-  subTotal: 100.00,
-  shippingCost: 20.00,
-  taxAmount: 6.00,
-  totalAmount: 126.00,
-  payments: [
-    {
-      transactionId: "a123456789",
-      dateTime: "2018-08-18T12:13:14Z",
-      currency: {
-        code: "USD"
-      },
-      amount: 154.44,
-      method: "CreditCard",
-      paymentInfo: {
-        cardType: "VISA",
-        creditCardNumber: "1234567812345678",
-        cardOwner: "Tim Witz",
-        expirationDate: {
-          month: 8,
-          year: 2018
-        },
-        ccv: "874",
-        postalCode: "301683"
-      },
-      approved: true,
-      additionalInfo: "Additional info"
-    }
-  ],
-  orderItems: [
-    {
-      orderLine: 1,
-      product: {
-        id: "1004100",
-        name: "Men’s Thunder Jacket"
-      },
-      location: {
-        "type": "Store",
-        id: "s1"
-      },
-      sourceSystem: "SAP",
-      deliveries: [
-        {
-          "type": "Shipment",
-          date: "2018-08-18",
-          itemStatus: "Pending",
-          authorizedPeople: [
+	sourceSystem: order.sourceSystem,
+	customer: customer.accountId,
+	orderId: order.orderId,
+	orderDateTime: order.orderDateTime default now() as LocalDateTime {format: "yyyy-MM-dd"},
+	status: order.status,
+	trackingNumber: order.trackingNumber,
+	contact: {
+		firstName: (customer.name splitBy(" "))[0] default "",
+		lastName: (customer.name splitBy(" "))[1] default "",
+		email: customer.email[?($.'type' == "Work")][0].address,
+		phone: customer.phone[0].phoneNumber
+	},
+	billingAddress: {
+		'type': "Home",
+		addressLines: billingAddress.addressLines,
+		city: billingAddress.city,
+		state: billingAddress.state,
+		postalCode: billingAddress.postalCode, 
+		countryCode: billingAddress.countryCode
+	},
+	deliveryAddress: {
+		'type': "Home",
+		addressLines: shippingAddress.addressLines,
+		city: shippingAddress.city,
+		state: shippingAddress.state,
+		postalCode: shippingAddress.postalCode,
+		countryCode: shippingAddress.countryCode
+	},
+	deliveries: [
+		{
+			"type": "Shipment",
+			date: now() as LocalDateTime {format: 'yyyy-MM-dd'},
+			itemStatus: "Pending",
+			"authorizePeople": [
+				{
+					firstName: (customer.name splitBy(" "))[0] default "",
+					lastName: (customer.name splitBy(" "))[1] default "",
+				}
+			]	
+		}
+	],
+	deliveryStatus: "Processing",
+	currency: {
+		code: "USD"
+	},
+	subTotal: 100,
+	shippingCost: shippingCost,
+	taxAmount: calculateTaxAmount(100),
+	totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+	payments: [
+		{
+			transactionId: "a123456789",
+			dateTime: "2018-08-18T12:13:14Z",
+			currency: {
+				code: "USD"
+			},
+			amount: (100 + shippingCost + calculateTaxAmount(100)),
+			method: 'CreditCard',
+			paymentInfo: {
+				cardType: "VISA",
+				credtCardNumber: "XXXXXXXXXXXX8598",
+				cardOwner: customer.name,
+				expirationDate: {
+					month: 8,
+					year: 2024
+				},
+				ccv: "874",
+				postalCode: "301683"
+			},
+			approved: true,
+		}
+	],
+	orderItems: order.orderItems map (item, itemIndexOf) -> {
+		orderLine: item.orderLine,
+			product: {
+				id: item.product.id,
+				name: item.product.name
+			},
+			location: {
+				'type': "Store",
+				id: "s1"
+			},
+			sourceSystem: order.sourceSystem,
+            "deliveries": [
             {
-              firstName: "Tim",
-              lastName: "Witz"
+            		"type": "Shipment",
+                "date": "2018-08-18",
+                "itemStatus": "Pending",
+                "authorizedPeople": [
+        			{
+					firstName: (customer.name splitBy(" "))[0] default "",
+					lastName: (customer.name splitBy(" "))[1] default "",
+                }
+            		],
+            		"carrier": "UPS",
+        		    "trackingNumber": "t12334345345",
+        		    "amount": 12,
+                "insuredAmount": 10,
+                "comments": "Left at front door"
             }
-          ],
-          carrier: "UPS",
-          trackingNumber: "t12334345345",
-          amount: 12.00,
-          insuredAmount: 10.00,
-          comments: "Left at front door"
-        }
-      ],
-      quantity: {
-        ordered: 3,
-        shipped: 2,
-        backOrdered: 1
-      },
-      pricing: {
-        itemAmount: 20.00,
-        discount: {
-          program: "Labor Day sale",
-          percent: 75
-        },
-        totalAmount: 20.00,
-        discountedAmount: 15.00,
-        currency: {
-          code: "USD"
-        }
-      },
-      link: {
-        href: "http://localhost",
-        title: "Link to product"
-      }
-    }, 
-    {
-      orderLine: 2,
-      product: {
-        id: "1806100",
-        name: "Men’s Single Track II"
-      },
-      location: {
-        "type": "Store",
-        id: "s1"
-      },
-      sourceSystem: "Billing DB",
-      deliveries: [
-        {
-          "type": "Pickup",
-          date: "2018-08-18",
-          authorizedPeople: [
-            {
-              firstName: "Tim",
-              lastName: "Witz",
-              phoneNumber: "415-030-2033"
-            }
-          ]
-        }
-      ],
-      quantity: {
-        ordered: 4,
-        shipped: 4,
-        backOrdered: 0
-      },
-      pricing: {
-        itemAmount: 20.00,
-        discount: {
-          program: "Back to school",
-          amount: 20.00
-        },
-        totalAmount: 80.00,
-        discountedAmount: 60.00,
-        currency: {
-          code: "USD"
-        }
-      },
-      link: {
-        href: "http://localhost",
-        title: "Link to product"
-      }
-    }
-  ]
+        ],
+        quantity: {
+        		ordered: item.quantity.ordered,
+        		shipped: item.quantity.shipped
+        }, 
+        "pricing": {
+            "itemAmount": 20,
+            "discount": {
+            		"program": "Labor Day sale",
+                "percent": 75
+	        	},
+        		"totalAmount": 20,
+        		"discountedAmount": 15,
+    			"currency": {
+            		"code": "USD"
+        		}
+    		},
+        "link": {
+            "href": "http://localhost",
+            "title": "Link to product"
+        }            
+	}			
 }]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+			</ee:message>
+		</ee:transform>
     </flow>
     <flow name="post:\accounts:application\json:ecommerce-cloud-api-config">
-        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
+		<ee:transform doc:name="Not Implemented" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-{
-  meta: {
-    messages: [
-      {
-        severity: "INFO",
-        code: "200",
-        description: "OK",
-        link: {
-          href: "http://localhost",
-          title: "All good!"
-        }
-      }
-    ],
-    totalItems: 3,
-    pagingOffset: 1,
-    pagingLimit: 15
-  },
-  links: {
-    self: {
-      href: "http://localhost/currentPage",
-      title: "Current page"
-    },
-    first: {
-      href: "http://localhost/firstPage",
-      title: "First Page"
-    },
-    prev: {
-      href: "http://localhost/previousPage",
-      title: "Previous page"
-    },
-    next: {
-      href: "http://localhost/nextPage",
-      title: "Next Page"
-    },
-    last: {
-      href: "http://localhost/lastPage",
-      title: "Last Page"
-    }
-  },
-  messages: [
-    {
-      itemId: "2222222",
-      severity: "INFO",
-      code: "201",
-      description: "account record created"
-    }, 
-    {
-      itemId: "3333333",
-      severity: "INFO",
-      code: "202",
-      description: "Create account request accepted"
-    }, 
-    {
-      itemId: "111111",
-      severity: "INFO",
-      code: "409",
-      description: "Duplicate account record exists"
-    }
-  ]
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
     <flow name="post:\orders:application\json:ecommerce-cloud-api-config">
-        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
+		<ee:transform doc:name="Not Implemented" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-{
-  meta: {
-    messages: [
-      {
-        severity: "INFO",
-        code: "200",
-        description: "OK",
-        link: {
-          href: "http://localhost",
-          title: "All good!"
-        }
-      }
-    ],
-    totalItems: 3,
-    pagingOffset: 1,
-    pagingLimit: 15
-  },
-  links: {
-    self: {
-      href: "http://localhost/currentPage",
-      title: "Current page"
-    },
-    first: {
-      href: "http://localhost/firstPage",
-      title: "First Page"
-    },
-    prev: {
-      href: "http://localhost/previousPage",
-      title: "Previous page"
-    },
-    next: {
-      href: "http://localhost/nextPage",
-      title: "Next Page"
-    },
-    last: {
-      href: "http://localhost/lastPage",
-      title: "Last Page"
-    }
-  },
-  messages: [
-    {
-      itemId: "2222222",
-      severity: "INFO",
-      code: "201",
-      description: "order record created"
-    }, 
-    {
-      itemId: "3333333",
-      severity: "INFO",
-      code: "202",
-      description: "Create order request accepted"
-    }, 
-    {
-      itemId: "111111",
-      severity: "INFO",
-      code: "409",
-      description: "Duplicate order record exists"
-    }
-  ]
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
     <flow name="post:\payments:application\json:ecommerce-cloud-api-config">
-        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
-http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
+		<ee:transform doc:name="Not Implemented" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-{
-  meta: {
-    messages: [
-      {
-        severity: "INFO",
-        code: "200",
-        description: "OK",
-        link: {
-          href: "http://localhost",
-          title: "All good!"
-        }
-      }
-    ],
-    totalItems: 3,
-    pagingOffset: 1,
-    pagingLimit: 15
-  },
-  links: {
-    self: {
-      href: "http://localhost/currentPage",
-      title: "Current page"
-    },
-    first: {
-      href: "http://localhost/firstPage",
-      title: "First Page"
-    },
-    prev: {
-      href: "http://localhost/previousPage",
-      title: "Previous page"
-    },
-    next: {
-      href: "http://localhost/nextPage",
-      title: "Next Page"
-    },
-    last: {
-      href: "http://localhost/lastPage",
-      title: "Last Page"
-    }
-  },
-  messages: [
-    {
-      itemId: "2222222",
-      severity: "INFO",
-      code: "201",
-      description: "payment record created"
-    }, 
-    {
-      itemId: "3333333",
-      severity: "INFO",
-      code: "202",
-      description: "Create payment request accepted"
-    }, 
-    {
-      itemId: "111111",
-      severity: "INFO",
-      code: "409",
-      description: "Duplicate payment record exists"
-    }
-  ]
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
+{message: "Not Implemented"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
     </flow>
 </mule>
