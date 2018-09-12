@@ -248,9 +248,9 @@ output application/json
 output application/json
 var billingAddress =  payload.postalAddresses[?($.'type' == "billing")][0]
 var shippingAddress = payload.postalAddresses[?($.'type' == "shipping")][0]
-var shippingCost = p('shippingCost')
+var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = total * p('tax') as Number
-var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
+var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 ---
 {
 	meta: {
@@ -318,7 +318,7 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 				method: 'CreditCard',
 				paymentInfo: {
 					cardType: "VISA",
-					credtCardNumber: "XXXXXXXXXXXX8598",
+					creditCardNumber: "XXXXXXXXXXXX8598",
 					cardOwner: payload.name,
 					expirationDate: {
 						month: 8,
@@ -327,14 +327,15 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 					ccv: "874",
 					postalCode: "301683"
 				},
-				approved: true,
+				approved: true
+				
 			}
 		],
 		orderItems: order.orderItems map (item, itemIndexOf) -> {
 			orderLine: item.orderLine,
 			product: {
 				id: item.product.id,
-				name: item.product.name
+				name: item.product.name default "NONE"
 			},
 			location: {
 				'type': "Store",
@@ -359,22 +360,8 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
                     "comments": "Left at front door"
                 }
             ],
-            quantity: {
-            		ordered: item.quantity.ordered,
-            		shipped: item.quantity.shipped
-            }, 
-            "pricing": {
-	            "itemAmount": 20,
-	            "discount": {
-                		"program": "Labor Day sale",
-	                "percent": 75
-    		        	},
-            		"totalAmount": 20,
-            		"discountedAmount": 15,
-        			"currency": {
-                		"code": "USD"
-            		}
-        		},
+            quantity: item.quantity, 
+            "pricing": item.pricing,
             "link": {
                 "href": "http://localhost",
                 "title": "Link to product"
@@ -393,9 +380,9 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 output application/json
 fun billingAddress(customer) =  customer.postalAddresses[?($.'type' == "billing")][0]
 fun shippingAddress(customer) = customer.postalAddresses[?($.'type' == "shipping")][0]
-var shippingCost = p('shippingCost')
+var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = total * p('tax') as Number
-var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
+var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 ---
 {
 	meta: {
@@ -407,7 +394,7 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 		customer.orders map (order, indexOf) -> {
 			customerId: customer.accountId,
 			orderId: order.orderId,
-			orderDateTime: order.orderDateTime default now(),
+			orderDateTime: order.orderDateTime default today,
 			status: order.status,
 			trackingNumber: order.trackingNumber,
 		contact: {
@@ -464,7 +451,7 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 				method: 'CreditCard',
 				paymentInfo: {
 					cardType: "VISA",
-					credtCardNumber: "XXXXXXXXXXXX8598",
+					creditCardNumber: "XXXXXXXXXXXX8598",
 					cardOwner: customer.name,
 					expirationDate: {
 						month: 8,
@@ -473,14 +460,14 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
 					ccv: "874",
 					postalCode: "301683"
 				},
-				approved: true,
+				approved: true
 			}
 		],
 		orderItems: order.orderItems map (item, itemIndexOf) -> {
 			orderLine: item.orderLine,
 			product: {
 				id: item.product.id,
-				name: item.product.name
+				name: item.product.name default "NONE"
 			},
 			location: {
 				'type': "Store",
@@ -505,23 +492,9 @@ var today = now() as LocalDateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"}
                     "comments": "Left at front door"
                 }
             ],
-            quantity: {
-            		ordered: item.quantity.ordered,
-            		shipped: item.quantity.shipped
-            }, 
-            "pricing": {
-	            "itemAmount": 20,
-	            "discount": {
-                		"program": "Labor Day sale",
-	                "percent": 75
-    		        	},
-            		"totalAmount": 20,
-            		"discountedAmount": 15,
-        			"currency": {
-                		"code": "USD"
-            		}
-        		},
-            "link": {
+            quantity: item.quantity, 
+            pricing: item.pricing,
+            link: {
                 "href": "http://localhost",
                 "title": "Link to product"
             }            
@@ -866,14 +839,14 @@ var order = payload.customers[0].orders[?(($.orderId as Number) == vars.orderId)
 var customer = payload.customers[0]
 var billingAddress = customer.postalAddresses[?($.'type' == "billing")][0]
 var shippingAddress = customer.postalAddresses[?($.'type' == "shipping")][0]
-var shippingCost = p('shippingCost')
+var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = total * p('tax') as Number
 ---
 {
 	sourceSystem: order.sourceSystem,
 	customerId: customer.accountId,
 	orderId: order.orderId,
-	orderDateTime: order.orderDateTime default now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"},
+	orderDateTime: now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"},
 	status: order.status,
 	trackingNumber: order.trackingNumber,
 	contact: {
@@ -935,7 +908,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 			method: 'CreditCard',
 			paymentInfo: {
 				cardType: "VISA",
-				credtCardNumber: "XXXXXXXXXXXX8598",
+				creditCardNumber: "XXXXXXXXXXXX8598",
 				cardOwner: customer.name,
 				expirationDate: {
 					month: 8,
@@ -944,14 +917,14 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 				ccv: "874",
 				postalCode: "301683"
 			},
-			approved: true,
+			approved: true
 		}
 	],
 	orderItems: order.orderItems map (item, itemIndexOf) -> {
 		orderLine: item.orderLine,
 			product: {
 				id: item.product.id,
-				name: item.product.name
+				name: item.product.name default "NONE"
 			},
 			location: {
 				'type': "Store",
@@ -976,22 +949,8 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
                 "comments": "Left at front door"
             }
         ],
-        quantity: {
-        		ordered: item.quantity.ordered,
-        		shipped: item.quantity.shipped
-        }, 
-        "pricing": {
-            "itemAmount": 20,
-            "discount": {
-            		"program": "Labor Day sale",
-                "percent": 75
-	        	},
-        		"totalAmount": 20,
-        		"discountedAmount": 15,
-    			"currency": {
-            		"code": "USD"
-        		}
-    		},
+        quantity: item.quantity, 
+        "pricing": item.pricing,
         "link": {
             "href": "http://localhost",
             "title": "Link to product"
