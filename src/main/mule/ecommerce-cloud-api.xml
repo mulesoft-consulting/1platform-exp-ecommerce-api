@@ -303,10 +303,10 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 		currency: {
 			code: "USD"
 		},
-		subTotal: 100,
+		subTotal: order.totalAmount,
 		shippingCost: shippingCost,
-		taxAmount: calculateTaxAmount(100),
-		totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+		taxAmount: calculateTaxAmount(order.totalAmount),
+		totalAmount: (order.totalAmount + shippingCost + calculateTaxAmount(order.totalAmount)),
 		payments: [
 			{
 				transactionId: "a123456789",
@@ -314,7 +314,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 				currency: {
 					code: "USD"
 				},
-				amount: (100 + shippingCost + calculateTaxAmount(100)),
+				amount: (order.totalAmount + shippingCost + calculateTaxAmount(order.totalAmount)),
 				method: 'CreditCard',
 				paymentInfo: {
 					cardType: "VISA",
@@ -355,7 +355,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
                 ],
                     "carrier": "UPS",
                     "trackingNumber": "t12334345345",
-                    "amount": 12,
+                    "amount": shippingCost,
                     "insuredAmount": 10,
                     "comments": "Left at front door"
                 }
@@ -436,10 +436,10 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 		currency: {
 			code: "USD"
 		},
-		subTotal: 100,
+		subTotal: payload.totalAmount,
 		shippingCost: shippingCost,
-		taxAmount: calculateTaxAmount(100),
-		totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+		taxAmount: calculateTaxAmount(payload.totalAmount),
+		totalAmount: (payload.totalAmount + shippingCost + calculateTaxAmount(payload.totalAmount)),
 		payments: [
 			{
 				transactionId: "a123456789",
@@ -447,7 +447,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 				currency: {
 					code: "USD"
 				},
-				amount: (100 + shippingCost + calculateTaxAmount(100)),
+				amount: (payload.totalAmount + shippingCost + calculateTaxAmount(payload.totalAmount)),
 				method: 'CreditCard',
 				paymentInfo: {
 					cardType: "VISA",
@@ -487,7 +487,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
                 ],
                     "carrier": "UPS",
                     "trackingNumber": "t12334345345",
-                    "amount": 12,
+                    "amount": shippingCost,
                     "insuredAmount": 10,
                     "comments": "Left at front door"
                 }
@@ -884,7 +884,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 			],
 			carrier: "UPS",
 			trackingNumber: order.trackingNumber,
-			amount: 12,
+			amount: shippingCost,
 			insuredAmount: 10,
 			comments: "Left at front door"
 		}
@@ -893,10 +893,10 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 	currency: {
 		code: "USD"
 	},
-	subTotal: 100,
+	subTotal: order.totalAmount,
 	shippingCost: shippingCost,
-	taxAmount: calculateTaxAmount(100),
-	totalAmount: (100 + shippingCost + calculateTaxAmount(100)),
+	taxAmount: calculateTaxAmount(order.totalAmount),
+	totalAmount: (order.totalAmount + shippingCost + calculateTaxAmount(order.totalAmount)),
 	payments: [
 		{
 			transactionId: "a123456789",
@@ -904,7 +904,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
 			currency: {
 				code: "USD"
 			},
-			amount: (100 + shippingCost + calculateTaxAmount(100)),
+			amount: (order.totalAmount + shippingCost + calculateTaxAmount(order.totalAmount)),
 			method: 'CreditCard',
 			paymentInfo: {
 				cardType: "VISA",
@@ -944,7 +944,7 @@ fun calculateTaxAmount(total) = total * p('tax') as Number
             		],
             		"carrier": "UPS",
         		    "trackingNumber": "t12334345345",
-        		    "amount": 12,
+        		    "amount": shippingCost,
                 "insuredAmount": 10,
                 "comments": "Left at front door"
             }
