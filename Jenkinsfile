@@ -46,7 +46,7 @@ pipeline {
       environment {
         ENVIRONMENT = 'Development'
         ANYPOINT_ENV = credentials('DEV_ANYPOINT_SALES')
-        APP_NAME = 'dev-nto-ecommerce-cloud-api-v1'
+        APP_NAME = 'dev-nto-ecommerce-cloud-api-v2'
       }
       steps {
         withMaven(
@@ -62,7 +62,7 @@ pipeline {
         environment {
           ENVIRONMENT = 'Production'
           ANYPOINT_ENV = credentials('PRD_ANYPOINT_SALES')
-          APP_NAME = 'nto-ecommerce-cloud-api-v1'
+          APP_NAME = 'nto-ecommerce-cloud-api-v2'
         }
         steps {
           withMaven(
