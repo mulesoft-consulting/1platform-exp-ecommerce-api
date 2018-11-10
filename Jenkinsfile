@@ -7,12 +7,12 @@ pipeline {
     MULE_VERSION = '4.1.4-AM'
     BG = "1Platform\\Retail\\Sales"
     WORKER = "Small"
-    APP_CLIENT_CREDS = credentials("$BRANCH_NAME-api-mgr-proc-customer-api")
+    APP_CLIENT_CREDS = credentials("$BRANCH_NAME-api-mgr-exp-ecommerce-api")
   }
   stages {
     stage('Prepare') {
       steps {
-        configFileProvider([configFile(fileId: "${BRANCH_NAME}-proc-customer-api.yaml", replaceTokens: true, targetLocation: './src/main/resources/config/configuration.yaml')]) {
+        configFileProvider([configFile(fileId: "${BRANCH_NAME}-exp-ecommerce-api.yaml", replaceTokens: true, targetLocation: './src/main/resources/config/configuration.yaml')]) {
           withCredentials([file(credentialsId: 'self-signed-keystore.jks', variable: 'KEYSTORE_FILE')]){
             sh 'echo "Branch NAME: $BRANCH_NAME"'
             sh 'cp $KEYSTORE_FILE ./src/main/resources/keystore.jks'
@@ -46,7 +46,7 @@ pipeline {
       environment {
         ENVIRONMENT = 'Development'
         ANYPOINT_ENV = credentials('DEV_ANYPOINT_SALES')
-        APP_NAME = 'dev-nto-customer-api-v1'
+        APP_NAME = 'dev-nto-ecommerce-cloud-api-v1'
       }
       steps {
         withMaven(
@@ -62,7 +62,7 @@ pipeline {
         environment {
           ENVIRONMENT = 'Production'
           ANYPOINT_ENV = credentials('PRD_ANYPOINT_SALES')
-          APP_NAME = 'nto-customer-api-v1'
+          APP_NAME = 'nto-ecommerce-cloud-api-v1'
         }
         steps {
           withMaven(
