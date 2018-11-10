@@ -12,15 +12,6 @@ app:
   client_secret: 
   autodiscovery: 
   
-#Sales Business Group credentials
-anypoint:
-  platform:
-    client_id: 
-    client_secret: 
-    visualizer:
-      layer: 
-      
-      
 keystore:
   path: 
   password: 
