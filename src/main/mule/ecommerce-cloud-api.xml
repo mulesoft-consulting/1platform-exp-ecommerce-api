@@ -250,7 +250,8 @@ var billingAddress =  payload.postalAddresses[?($.'type' == "billing")][0]
 var shippingAddress = payload.postalAddresses[?($.'type' == "shipping")][0]
 var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = total * p('tax') as Number
-var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
+var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"} as String
+fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ '.000Z'
 ---
 {
 	meta: {
@@ -261,7 +262,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 	orders: payload.orders map (order, indexOf) -> {
 		customerId: payload.accountId,
 		orderId: order.orderId,
-		orderDateTime: order.orderDateTime default now(),
+		orderDateTime: formatDate(order.orderDateTime) default formatDate(today),
 		status: order.status,
 		trackingNumber: order.trackingNumber,
 		contact: {
@@ -382,7 +383,8 @@ fun billingAddress(customer) =  customer.postalAddresses[?($.'type' == "billing"
 fun shippingAddress(customer) = customer.postalAddresses[?($.'type' == "shipping")][0]
 var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = total * p('tax') as Number
-var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
+var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"} as String
+fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ '.000Z'
 ---
 {
 	meta: {
@@ -394,7 +396,7 @@ var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"}
 		customer.orders map (order, indexOf) -> {
 			customerId: customer.accountId,
 			orderId: order.orderId,
-			orderDateTime: order.orderDateTime default today,
+			orderDateTime: formatDate(order.orderDateTime) default formatDate(today),
 			status: order.status,
 			trackingNumber: order.trackingNumber,
 		contact: {
@@ -840,13 +842,15 @@ var customer = payload.customers[0]
 var billingAddress = customer.postalAddresses[?($.'type' == "billing")][0]
 var shippingAddress = customer.postalAddresses[?($.'type' == "shipping")][0]
 var shippingCost = p('shippingCost') as Number
-fun calculateTaxAmount(total) = total * p('tax') as Number
+fun calculateTaxAmount(total) = (total default 0) * p('tax') as Number
+var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"} as String
+fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ '.000Z'
 ---
 {
 	sourceSystem: order.sourceSystem,
 	customerId: customer.accountId,
 	orderId: order.orderId,
-	orderDateTime: now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ss'Z'"},
+	orderDateTime: formatDate(order.orderDateTime) default formatDate(today),
 	status: order.status,
 	trackingNumber: order.trackingNumber,
 	contact: {
