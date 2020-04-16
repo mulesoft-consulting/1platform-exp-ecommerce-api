@@ -311,7 +311,7 @@ fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ 
 		payments: [
 			{
 				transactionId: "a123456789",
-				dateTime: "2018-08-18T12:13:14Z",
+				dateTime: formatDate(order.orderDateTime) default formatDate(today),
 				currency: {
 					code: "USD"
 				},
@@ -445,7 +445,7 @@ fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ 
 		payments: [
 			{
 				transactionId: "a123456789",
-				dateTime: "2018-08-18T12:13:14Z",
+				dateTime: formatDate(order.orderDateTime) default formatDate(today),
 				currency: {
 					code: "USD"
 				},
@@ -844,7 +844,7 @@ var shippingAddress = customer.postalAddresses[?($.'type' == "shipping")][0]
 var shippingCost = p('shippingCost') as Number
 fun calculateTaxAmount(total) = (total default 0) * p('tax') as Number
 var today = now() as DateTime {format: "yyyy-MM-dd'T'HH:mm:ssZ"} as String
-fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ '.000Z'
+fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ 'Z'
 ---
 {
 	sourceSystem: order.sourceSystem,
@@ -904,11 +904,11 @@ fun formatDate(targetDate)=targetDate[0 to 9] ++ 'T' ++ targetDate[11 to 18] ++ 
 	payments: [
 		{
 			transactionId: "a123456789",
-			dateTime: "2018-08-18T12:13:14Z",
+			dateTime: formatDate(order.orderDateTime) default formatDate(today),
 			currency: {
 				code: "USD"
 			},
-			amount: (order.totalAmount + shippingCost + calculateTaxAmount(order.totalAmount)),
+			amount: (order.totalAmount + shippingCost default 0 + calculateTaxAmount(order.totalAmount)),
 			method: 'CreditCard',
 			paymentInfo: {
 				cardType: "VISA",
